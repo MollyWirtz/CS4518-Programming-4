@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Basketball Score</string>
+    <string name="team_a_header">Team A</string>
+    <string name="team_b_header">Team B</string>
+    <string name="three_points">+3 Points</string>
+    <string name="two_points">+2 Points</string>
+    <string name="free_throw">Free Throw</string>
+    <string name="reset">Reset</string>
+    <string name="save">Save</string>
+    <string name="display">Display</string>
+    <string name="back">Go Back</string>
+    <string name="confirm_message">Are you sure you want to save this game?</string>
+    <string name="content_desc">Cartoon image of a basketball</string>
+    <string name="txtHint">Text</string>
+    <string name="hint_a">Customize name for Team A</string>
+    <string name="hint_b">Customize name for Team B</string>
+
+</resources>
