@@ -14,5 +14,5 @@
     <string name="txtHint">Text</string>
     <string name="hint_a">Customize name for Team A</string>
     <string name="hint_b">Customize name for Team B</string>
-
+    <string name="logo">Team logo</string>
 </resources>
