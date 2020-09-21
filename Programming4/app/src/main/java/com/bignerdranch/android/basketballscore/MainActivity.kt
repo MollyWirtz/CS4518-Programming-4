@@ -6,7 +6,7 @@ import android.util.Log
 
 private const val TAG = "MainActivity"
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), MainFragment.Callbacks {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,6 +21,16 @@ class MainActivity : AppCompatActivity() {
                 .commit()
         }
 
+    }
+
+    override fun onDisplaySelected() {
+        Log.d(TAG, "MainActivity.onDisplaySelected")
+        val fragment= GameListFragment()
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 
     // Override the lifecycle functions to log data

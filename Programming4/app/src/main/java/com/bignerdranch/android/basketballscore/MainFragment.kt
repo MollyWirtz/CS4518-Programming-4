@@ -1,6 +1,7 @@
 package com.bignerdranch.android.basketballscore
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -24,6 +25,11 @@ private const val TAG = "MainFragment"
 
 class MainFragment: Fragment() {
 
+    interface Callbacks {
+        fun onDisplaySelected()
+    }
+    private var callbacks: Callbacks? = null
+
     private lateinit var threePointBtnA: Button
     private lateinit var threePointBtnB: Button
     private lateinit var twoPointBtnA: Button
@@ -42,6 +48,11 @@ class MainFragment: Fragment() {
     // Create a ScoreViewModel
     private val scoreViewModel: ScoreViewModel by lazy {
         ViewModelProviders.of(this).get(ScoreViewModel::class.java)
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,11 +139,15 @@ class MainFragment: Fragment() {
         }
         displayBtn.setOnClickListener{
             // Create intent
-            val intent = GameListActivity.newIntent(getActivity() as Activity)
-            startActivityForResult(intent, REQUEST_CODE_DISPLAY)
+            callbacks?.onDisplaySelected()
         }
 
         return view
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        callbacks = null
     }
 
     // Reset text fields on button click, saved data
