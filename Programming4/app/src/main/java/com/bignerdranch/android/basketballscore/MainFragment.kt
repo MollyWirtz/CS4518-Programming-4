@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 
 
@@ -53,6 +54,10 @@ class MainFragment: Fragment() {
         ViewModelProviders.of(this).get(ScoreViewModel::class.java)
     }
 
+    private val gameListViewModel: GameListViewModel by lazy {
+        ViewModelProviders.of(this).get(GameListViewModel::class.java)
+    }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         callbacks = context as Callbacks?
@@ -64,7 +69,7 @@ class MainFragment: Fragment() {
         Log.d(TAG, "args bundle game index: $gameIndex")
 
         // Initialize the singleton GameListViewModel
-        GameListViewModel.initialize()
+        //GameListViewModel.initialize()
     }
 
     override fun onCreateView(
@@ -94,11 +99,6 @@ class MainFragment: Fragment() {
         scoreB = view.findViewById(R.id.score_b)
         teamAName = view.findViewById(R.id.team_a_name_id)
         teamBName = view.findViewById(R.id.team_b_name_id)
-
-        // If a fragment argument has been recieved from GameListFragment display the clicked game
-        if (gameIndex != null) {
-            showClickedGame(gameIndex)
-        }
 
         // Set initial score
         scoreA.setText(scoreViewModel.teamA.score.toString())
@@ -162,6 +162,18 @@ class MainFragment: Fragment() {
         return view
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        gameListViewModel.gameListLiveData.observe(
+            viewLifecycleOwner, Observer { games ->
+                games.let {
+                    Log.i(TAG, "Got games ${games.size}")
+                    showClickedGame(games)
+                }
+            })
+    }
+
+
     override fun onDetach() {
         super.onDetach()
         gameIndex = null
@@ -177,14 +189,14 @@ class MainFragment: Fragment() {
         }
     }
 
-    fun showClickedGame(gameIndex: String?) {
-        // Find correct game information and set in scoreViewModel for display
-        for (game in GameListViewModel.games) {
-            if (game.index == gameIndex) {
-                teamAName.setText(game.teamA)
-                teamBName.setText(game.teamB)
-                scoreViewModel.addScore(game.scoreA.toInt(), 'A')
-                scoreViewModel.addScore(game.scoreB.toInt(), 'B')
+    fun showClickedGame(games: List<Game>) {
+        //Find correct game information and set in scoreViewModel for display
+        for (game in games) {
+            if (game.id == gameIndex) {
+                teamAName.setText(game.teamAName)
+                teamBName.setText(game.teamBName)
+                scoreViewModel.addScore(game.teamAScore, 'A')
+                scoreViewModel.addScore(game.teamBScore, 'B')
                 scoreA.setText(scoreViewModel.teamA.score.toString())
                 scoreB.setText(scoreViewModel.teamB.score.toString())
                 break
