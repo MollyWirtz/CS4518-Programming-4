@@ -1,6 +1,7 @@
 package com.bignerdranch.android.basketballscore
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -17,12 +18,20 @@ import androidx.lifecycle.ViewModelProviders
 private const val TEAM_A = "teamA"
 private const val TEAM_B = "teamB"
 private const val REQUEST_CODE_SAVE = 0
-private const val REQUEST_CODE_DISPLAY = 1
 private const val TAG = "MainFragment"
+private const val ARG_GAME_INDEX = "game.index"
 
 
 
 class MainFragment: Fragment() {
+
+    // Use Callbacks to communicate with GameListFragment
+    interface Callbacks {
+        fun onDisplaySelected(winner: String)
+    }
+    private var callbacks: Callbacks? = null
+
+    private var gameIndex: String? = ""
 
     private lateinit var threePointBtnA: Button
     private lateinit var threePointBtnB: Button
@@ -44,8 +53,18 @@ class MainFragment: Fragment() {
         ViewModelProviders.of(this).get(ScoreViewModel::class.java)
     }
 
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        gameIndex = arguments?.getSerializable(ARG_GAME_INDEX) as String?
+        Log.d(TAG, "args bundle game index: $gameIndex")
+
+        // Initialize the singleton GameListViewModel
+        GameListViewModel.initialize()
     }
 
     override fun onCreateView(
@@ -75,6 +94,11 @@ class MainFragment: Fragment() {
         scoreB = view.findViewById(R.id.score_b)
         teamAName = view.findViewById(R.id.team_a_name_id)
         teamBName = view.findViewById(R.id.team_b_name_id)
+
+        // If a fragment argument has been recieved from GameListFragment display the clicked game
+        if (gameIndex != null) {
+            showClickedGame(gameIndex)
+        }
 
         // Set initial score
         scoreA.setText(scoreViewModel.teamA.score.toString())
@@ -127,12 +151,45 @@ class MainFragment: Fragment() {
             startActivityForResult(intent, REQUEST_CODE_SAVE)
         }
         displayBtn.setOnClickListener{
-            // Create intent
-            val intent = GameListActivity.newIntent(getActivity() as Activity)
-            startActivityForResult(intent, REQUEST_CODE_DISPLAY)
+            // Determine winner
+            if (scoreViewModel.teamA.score > scoreViewModel.teamB.score){
+                callbacks?.onDisplaySelected("A")
+            } else {
+                callbacks?.onDisplaySelected("B")
+            }
         }
 
         return view
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        gameIndex = null
+        callbacks = null
+    }
+
+    companion object {
+        fun newInstance(gameIndex: String): MainFragment {
+            val args = Bundle().apply {
+                putSerializable(ARG_GAME_INDEX, gameIndex)
+            }
+            return MainFragment().apply { arguments = args }
+        }
+    }
+
+    fun showClickedGame(gameIndex: String?) {
+        // Find correct game information and set in scoreViewModel for display
+        for (game in GameListViewModel.games) {
+            if (game.index == gameIndex) {
+                teamAName.setText(game.teamA)
+                teamBName.setText(game.teamB)
+                scoreViewModel.addScore(game.scoreA.toInt(), 'A')
+                scoreViewModel.addScore(game.scoreB.toInt(), 'B')
+                scoreA.setText(scoreViewModel.teamA.score.toString())
+                scoreB.setText(scoreViewModel.teamB.score.toString())
+                break
+            }
+        }
     }
 
     // Reset text fields on button click, saved data

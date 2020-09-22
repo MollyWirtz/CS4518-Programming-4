@@ -1,6 +1,8 @@
 package com.bignerdranch.android.basketballscore
 
+import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,17 +13,41 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
+private const val TAG = "GameListFragment"
+private const val ARG_GAME_WINNER = "game.winner"
+
 class GameListFragment: Fragment() {
+
+    // Implement Callbacks for communication with MainFragment
+    interface Callbacks {
+        fun onGameSelected(gameIndex: String)
+    }
+    private var callbacks: Callbacks? = null
 
     private lateinit var gameRecyclerView: RecyclerView
     private var adapter: GameAdapter? = null
+    private var winner: String = ""
 
     private val gameListViewModel: GameListViewModel by lazy {
         ViewModelProviders.of(this).get(GameListViewModel::class.java)
     }
 
+    // Callback methods
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
+    }
+    override fun onDetach() {
+        super.onDetach()
+        callbacks = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Get fragment argument from MainFragment
+        winner = arguments?.getSerializable(ARG_GAME_WINNER) as String
+        Log.d(TAG, "args bundle winner: $winner")
     }
 
     override fun onCreateView(
@@ -29,6 +55,8 @@ class GameListFragment: Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        Log.d(TAG, "onCreateView in GameListFragment")
+
         val view = inflater.inflate(R.layout.fragment_game_list, container, false)
         gameRecyclerView = view.findViewById(R.id.game_recycler_view) as RecyclerView
         gameRecyclerView.layoutManager = LinearLayoutManager(context)
@@ -38,18 +66,35 @@ class GameListFragment: Fragment() {
     }
 
     private fun updateUI() {
-        val games = gameListViewModel.games
+        val tempGames = GameListViewModel.games
+        val games = mutableListOf<Game>()
+
+        // Filter games by current winner in MainFragment
+        for (t in tempGames) {
+            if (winner == "A" && t.winner == "A") {
+                games += t
+            } else if (winner == "B" && t.winner == "B") {
+                games += t
+            }
+        }
+        Log.d(TAG,"${games.size} games have been added for winner ${winner}")
+
+        // Set games in recycler view
         adapter = GameAdapter(games)
         gameRecyclerView.adapter = adapter
     }
 
-    private inner class GameHolder(view: View) : RecyclerView.ViewHolder(view) {
+    private inner class GameHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
         private lateinit var game : Game
         private val indexTextView: TextView = itemView.findViewById(R.id.game_index)
         private val teamsTextView: TextView = itemView.findViewById(R.id.game_teams)
         private val dateTextView: TextView = itemView.findViewById(R.id.game_date)
         private val scoreTextView: TextView = itemView.findViewById(R.id.game_score)
         private val teamImage: ImageView = itemView.findViewById(R.id.team_img)
+
+        init {
+            itemView.setOnClickListener(this)
+        }
 
         fun bind(game: Game) {
             this.game = game
@@ -58,11 +103,19 @@ class GameListFragment: Fragment() {
             teamsTextView.text = game.teamA + " vs " + game.teamB
             scoreTextView.text = game.scoreA + " : " + game.scoreB
 
-            if (game.winner == game.teamA) {
+            // Set team image based on winning team
+            if (game.winner == "A") {
                 teamImage.setImageResource(R.drawable.wpi)
-            } else {
+            } else if (game.winner == "B"){
                 teamImage.setImageResource(R.drawable.huskylogo)
+            } else {
+                teamImage.setImageResource(R.drawable.mit)
             }
+        }
+
+        override fun onClick(v: View?) {
+            Log.d(TAG, "clicked index  = ${game.index}")
+            callbacks?.onGameSelected(game.index)
         }
 
     }
@@ -79,13 +132,19 @@ class GameListFragment: Fragment() {
         override fun onBindViewHolder(holder: GameHolder, position: Int) {
             val game = games[position]
             holder.bind(game)
+
         }
 
     }
 
     companion object {
-        fun newInstance(): GameListFragment {
-            return GameListFragment()
+        fun newInstance(winner: String): GameListFragment {
+            val args = Bundle().apply {
+                putSerializable(ARG_GAME_WINNER, winner)
+            }
+            return GameListFragment().apply {
+                arguments = args
+            }
         }
     }
 }
