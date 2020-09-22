@@ -6,12 +6,13 @@ import android.util.Log
 
 private const val TAG = "MainActivity"
 
-class MainActivity : AppCompatActivity(), MainFragment.Callbacks {
+class MainActivity : AppCompatActivity(), MainFragment.Callbacks, GameListFragment.Callbacks {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Start MainFragment
         val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
         if (currentFragment == null) {
             val fragment = MainFragment()
@@ -23,13 +24,26 @@ class MainActivity : AppCompatActivity(), MainFragment.Callbacks {
 
     }
 
-    override fun onDisplaySelected() {
-        Log.d(TAG, "MainActivity.onDisplaySelected")
-        val fragment= GameListFragment()
+    override fun onDisplaySelected(winner: String) {
+        Log.d(TAG, "MainActivity.onDisplaySelected: $winner")
+
+        // On Display button click start GameListFragment
+        val fragment = GameListFragment.newInstance(winner)
         supportFragmentManager
             .beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)
+            .commit()
+    }
+
+    override fun onGameSelected(gameIndex: String) {
+        Log.d(TAG, "game click")
+
+        // On game click start MainFragment
+        val fragment = MainFragment.newInstance(gameIndex)
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.fragment_container, fragment)
             .commit()
     }
 
