@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -25,7 +26,7 @@ class GameListFragment: Fragment() {
     private var callbacks: Callbacks? = null
 
     private lateinit var gameRecyclerView: RecyclerView
-    private var adapter: GameAdapter? = null
+    private var adapter: GameAdapter? = GameAdapter(emptyList())
     private var winner: String = ""
 
     private val gameListViewModel: GameListViewModel by lazy {
@@ -60,33 +61,38 @@ class GameListFragment: Fragment() {
         val view = inflater.inflate(R.layout.fragment_game_list, container, false)
         gameRecyclerView = view.findViewById(R.id.game_recycler_view) as RecyclerView
         gameRecyclerView.layoutManager = LinearLayoutManager(context)
+        gameRecyclerView.adapter = adapter
 
-        updateUI()
         return view
     }
 
-    private fun updateUI() {
-        val tempGames = GameListViewModel.games
-        val games = mutableListOf<Game>()
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        gameListViewModel.gameListLiveData.observe(
+            viewLifecycleOwner, Observer { games ->
+                games.let {
+                    Log.i(TAG, "Got games ${games.size}")
+                    updateUI(games)
+                }
+            })
+    }
 
-        // Filter games by current winner in MainFragment
-        for (t in tempGames) {
-            if (winner == "A" && t.winner == "A") {
-                games += t
-            } else if (winner == "B" && t.winner == "B") {
-                games += t
+    private fun updateUI(games: List<Game>) {
+        val filteredGames = mutableListOf<Game>()
+        for (g in games) {
+            if (g.teamAScore > g.teamBScore && winner == "A") {
+                filteredGames.add(g)
+            }
+            if (g.teamBScore > g.teamAScore && winner == "B") {
+                filteredGames.add(g)
             }
         }
-        Log.d(TAG,"${games.size} games have been added for winner ${winner}")
-
-        // Set games in recycler view
-        adapter = GameAdapter(games)
+        adapter = GameAdapter(filteredGames)
         gameRecyclerView.adapter = adapter
     }
 
     private inner class GameHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
         private lateinit var game : Game
-        private val indexTextView: TextView = itemView.findViewById(R.id.game_index)
         private val teamsTextView: TextView = itemView.findViewById(R.id.game_teams)
         private val dateTextView: TextView = itemView.findViewById(R.id.game_date)
         private val scoreTextView: TextView = itemView.findViewById(R.id.game_score)
@@ -98,15 +104,24 @@ class GameListFragment: Fragment() {
 
         fun bind(game: Game) {
             this.game = game
-            indexTextView.text = game.index
-            dateTextView.text = game.date
-            teamsTextView.text = game.teamA + " vs " + game.teamB
-            scoreTextView.text = game.scoreA + " : " + game.scoreB
+            dateTextView.text = game.date.toString()
+            teamsTextView.text = game.teamAName + " vs " + game.teamBName
+            scoreTextView.text = game.teamAScore.toString() + " : " + game.teamBScore.toString()
+
+            // Find game winner
+            var bindWinner = ""
+            if (game.teamAScore > game.teamBScore){
+                bindWinner = "A"
+            } else if (game.teamBScore > game.teamAScore) {
+                bindWinner = "B"
+            } else {
+                bindWinner = "C"
+            }
 
             // Set team image based on winning team
-            if (game.winner == "A") {
+            if (bindWinner == "A") {
                 teamImage.setImageResource(R.drawable.wpi)
-            } else if (game.winner == "B"){
+            } else if (bindWinner == "B"){
                 teamImage.setImageResource(R.drawable.huskylogo)
             } else {
                 teamImage.setImageResource(R.drawable.mit)
@@ -114,12 +129,11 @@ class GameListFragment: Fragment() {
         }
 
         override fun onClick(v: View?) {
-            Log.d(TAG, "clicked index  = ${game.index}")
-            callbacks?.onGameSelected(game.index)
+            Log.d(TAG, "clicked index  = ${game.id}")
+            callbacks?.onGameSelected(game.id)
         }
 
     }
-
 
     private inner class GameAdapter(var games: List<Game>): RecyclerView.Adapter<GameHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GameHolder {
@@ -132,9 +146,7 @@ class GameListFragment: Fragment() {
         override fun onBindViewHolder(holder: GameHolder, position: Int) {
             val game = games[position]
             holder.bind(game)
-
         }
-
     }
 
     companion object {
