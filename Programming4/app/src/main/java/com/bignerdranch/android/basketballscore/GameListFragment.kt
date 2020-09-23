@@ -63,7 +63,6 @@ class GameListFragment: Fragment() {
         gameRecyclerView.layoutManager = LinearLayoutManager(context)
         gameRecyclerView.adapter = adapter
 
-//        updateUI()
         return view
     }
 
@@ -82,18 +81,14 @@ class GameListFragment: Fragment() {
         val filteredGames = mutableListOf<Game>()
         for (g in games) {
             if (g.teamAScore > g.teamBScore && winner == "A") {
-                Log.d(TAG, "winner A add")
                 filteredGames.add(g)
             }
             if (g.teamBScore > g.teamAScore && winner == "B") {
-                Log.d(TAG, "winner B add")
                 filteredGames.add(g)
             }
         }
-        Log.d(TAG, "filtered game lenght = ${filteredGames.size}")
         adapter = GameAdapter(filteredGames)
         gameRecyclerView.adapter = adapter
-
     }
 
     private inner class GameHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
@@ -140,7 +135,6 @@ class GameListFragment: Fragment() {
 
     }
 
-
     private inner class GameAdapter(var games: List<Game>): RecyclerView.Adapter<GameHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GameHolder {
             val view = layoutInflater.inflate(R.layout.list_item_game, parent, false)
@@ -152,9 +146,7 @@ class GameListFragment: Fragment() {
         override fun onBindViewHolder(holder: GameHolder, position: Int) {
             val game = games[position]
             holder.bind(game)
-
         }
-
     }
 
     companion object {

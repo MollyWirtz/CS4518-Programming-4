@@ -12,4 +12,16 @@ class GameListViewModel : ViewModel() {
     private val gameRepository = GameRepository.get()
     val gameListLiveData = gameRepository.getGames()
 
+    suspend fun insert(game: Game){
+        gameRepository.insert(game)
+    }
+
+    suspend fun update(game: Game) {
+        gameRepository.update(game)
+    }
+
+    suspend fun deleteTableContents() {
+        gameRepository.deleteTableContents()
+    }
+
 }

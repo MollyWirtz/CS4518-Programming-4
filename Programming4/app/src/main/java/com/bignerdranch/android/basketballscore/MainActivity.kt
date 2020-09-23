@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity(), MainFragment.Callbacks, GameListFragme
                 .add(R.id.fragment_container, fragment)
                 .commit()
         }
-
     }
 
     override fun onDisplaySelected(winner: String) {
@@ -37,7 +36,6 @@ class MainActivity : AppCompatActivity(), MainFragment.Callbacks, GameListFragme
     }
 
     override fun onGameSelected(gameIndex: String) {
-        Log.d(TAG, "game click")
 
         // On game click start MainFragment
         val fragment = MainFragment.newInstance(gameIndex)

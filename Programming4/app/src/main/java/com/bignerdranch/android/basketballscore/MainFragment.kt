@@ -14,6 +14,9 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import java.util.*
 
 
 private const val TEAM_A = "teamA"
@@ -23,17 +26,17 @@ private const val TAG = "MainFragment"
 private const val ARG_GAME_INDEX = "game.index"
 
 
-
-class MainFragment: Fragment() {
+class MainFragment : Fragment() {
 
     // Use Callbacks to communicate with GameListFragment
     interface Callbacks {
         fun onDisplaySelected(winner: String)
     }
+
     private var callbacks: Callbacks? = null
 
-    private var gameIndex: String? = ""
-
+    private var gameIndex: String? = null
+    private var gameDate: Int? = null
     private lateinit var threePointBtnA: Button
     private lateinit var threePointBtnB: Button
     private lateinit var twoPointBtnA: Button
@@ -49,7 +52,6 @@ class MainFragment: Fragment() {
     private lateinit var teamBName: TextView
     private var isSaved = false
 
-    // Create a ScoreViewModel
     private val scoreViewModel: ScoreViewModel by lazy {
         ViewModelProviders.of(this).get(ScoreViewModel::class.java)
     }
@@ -68,8 +70,6 @@ class MainFragment: Fragment() {
         gameIndex = arguments?.getSerializable(ARG_GAME_INDEX) as String?
         Log.d(TAG, "args bundle game index: $gameIndex")
 
-        // Initialize the singleton GameListViewModel
-        //GameListViewModel.initialize()
     }
 
     override fun onCreateView(
@@ -132,8 +132,10 @@ class MainFragment: Fragment() {
         resetBtn.setOnClickListener {
             resetMain()
         }
-        saveBtn.setOnClickListener{
+        saveBtn.setOnClickListener {
             // Get data for extras
+            val id = gameIndex
+            val date = gameDate
             val team_a_name = teamAName.getText().toString()
             val team_b_name = teamBName.getText().toString()
             val team_a_score = scoreViewModel.teamA.score
@@ -142,23 +144,54 @@ class MainFragment: Fragment() {
             // Create intent
             val intent = SaveScoreActivity.newIntent(
                 getActivity() as Activity,
+                id,
+                date,
                 team_a_name,
                 team_b_name,
                 team_a_score,
-                team_b_score)
+                team_b_score
+            )
 
             // Start SaveScoreActivity
             startActivityForResult(intent, REQUEST_CODE_SAVE)
         }
-        displayBtn.setOnClickListener{
+        displayBtn.setOnClickListener {
+
+            // If game doesn't already exist in DB create new id and date
+            if (gameIndex == null || gameDate == null) {
+                val poss = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                for (i in 0..10) {
+                    gameIndex += poss[Math.floor(Math.random() * poss.length).toInt()]
+                }
+                gameDate = Date().time.toInt()
+
+                // Save game data implicitly
+                var game = Game(
+                    gameIndex as String,
+                    teamAName.getText().toString(),
+                    teamBName.getText().toString(),
+                    scoreViewModel.teamA.score,
+                    scoreViewModel.teamB.score,
+                    gameDate as Int
+                )
+                lifecycleScope.launch {
+                    Log.d(TAG, "Add to DB")
+                    gameListViewModel.insert(game)
+                }
+
+                // Clear set variables
+                gameIndex = null
+                gameDate = null
+            }
+
             // Determine winner
-            if (scoreViewModel.teamA.score > scoreViewModel.teamB.score){
+            if (scoreViewModel.teamA.score > scoreViewModel.teamB.score) {
                 callbacks?.onDisplaySelected("A")
             } else {
                 callbacks?.onDisplaySelected("B")
             }
-        }
 
+        }
         return view
     }
 
@@ -172,7 +205,6 @@ class MainFragment: Fragment() {
                 }
             })
     }
-
 
     override fun onDetach() {
         super.onDetach()
@@ -199,6 +231,7 @@ class MainFragment: Fragment() {
                 scoreViewModel.addScore(game.teamBScore, 'B')
                 scoreA.setText(scoreViewModel.teamA.score.toString())
                 scoreB.setText(scoreViewModel.teamB.score.toString())
+                gameDate = game.date
                 break
             }
         }
@@ -212,14 +245,18 @@ class MainFragment: Fragment() {
         scoreB.setText(scoreViewModel.teamB.score.toString())
         teamAName.setText(R.string.team_a_header)
         teamBName.setText(R.string.team_b_header)
+        gameIndex = null
+        gameDate = null
     }
 
     // Handle result of child intent response
-    override fun onActivityResult (requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
         // Return if bad code
-        if (resultCode != Activity.RESULT_OK) { return }
+        if (resultCode != Activity.RESULT_OK) {
+            return
+        }
 
         // Get reponse extra
         if (requestCode == REQUEST_CODE_SAVE) {
@@ -228,8 +265,8 @@ class MainFragment: Fragment() {
 
         // Toast as appropriate
         if (isSaved) {
-            resetMain()
-            Toast.makeText(getActivity() as Activity, "Saved sucessfully!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getActivity() as Activity, "Saved sucessfully!", Toast.LENGTH_SHORT)
+                .show()
         } else {
             Toast.makeText(getActivity() as Activity, "Data not saved", Toast.LENGTH_SHORT).show()
         }
